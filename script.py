@@ -8,6 +8,17 @@ def get_all_files_in_folder_rec(path: str, file_ext: str):
     files = list(Path(path).rglob(f"*{file_ext}"))
     return files
 
+def get_all_files_with_except(directory, excluded_dir):
+    files = []
+    for root, dirs, filenames in os.walk(directory):
+        # Exclude the specified directory
+        if excluded_dir in dirs:
+            dirs.remove(excluded_dir)
+        for filename in filenames:
+            filepath = os.path.join(root, filename)
+            files.append(filepath)
+    return files
+
 def decrypt_all_in_foler(args):
     files = get_all_files_in_folder_rec(args.folder, args.ext)
 
@@ -22,7 +33,8 @@ def decrypt_file(path_obj, delete_after: bool = False):
 
 
 def encrypt_all_in_folder(args):
-    files = get_all_files_in_folder_rec(args.folder, args.ext)
+    # files = get_all_files_in_folder_rec(args.folder, args.ext)
+    files = get_all_files_with_except(args.folder, '.git')
 
     for f in tqdm(files):
         encrypt_file(f, recipient=args.email, ext=args.ext, delete_after=args.delete)
