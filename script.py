@@ -8,25 +8,31 @@ def get_all_files_in_folder_rec(path: str, file_ext: str):
     files = list(Path(path).rglob(f"*{file_ext}"))
     return files
 
-def get_all_files_with_except(directory, excluded_dir):
+def get_all_files_with_except(directory: str, excluded_dir: str, exclude_files: list):
     files = []
     for root, dirs, filenames in os.walk(directory):
         # Exclude the specified directory
         if excluded_dir in dirs:
             dirs.remove(excluded_dir)
         for filename in filenames:
+            if filename in exclude_files:
+                continue
             filepath = os.path.join(root, filename)
             files.append(filepath)
+        for dd in dirs:
+            files.extend(get_all_files_with_except(dd, excluded_dir, exclude_files))
     return files
 
 def decrypt_all_in_foler(args):
-    files = get_all_files_in_folder_rec(args.folder, args.ext)
+    # files = get_all_files_in_folder_rec(args.folder, args.ext)
+    files = get_all_files_with_except(args.folder, '.git', [".gitattributes", ".gpg-id", "README.md"])
 
     for f in tqdm(files):
         decrypt_file(f, delete_after=args.delete)
 
 def decrypt_file(path_obj, delete_after: bool = False):
-    new_filepath = os.path.join(path_obj.parent, path_obj.stem)
+    # new_filepath = os.path.join(path_obj.parent, path_obj.stem)
+    new_filepath = path_obj.removesuffix(".gpg")
     os.system(f"gpg -o {new_filepath} -d {path_obj}")
     if delete_after:
         os.remove(path_obj)
@@ -34,7 +40,7 @@ def decrypt_file(path_obj, delete_after: bool = False):
 
 def encrypt_all_in_folder(args):
     # files = get_all_files_in_folder_rec(args.folder, args.ext)
-    files = get_all_files_with_except(args.folder, '.git')
+    files = get_all_files_with_except(args.folder, '.git', [".gitattributes", ".gpg-id", "README.md"])
 
     for f in tqdm(files):
         encrypt_file(f, recipient=args.email, ext=args.ext, delete_after=args.delete)
